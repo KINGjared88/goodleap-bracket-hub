@@ -1,50 +1,36 @@
 
 
-## Plan: Switch Accent from Pink to Purple + Fix News Relevance
+## Plan: Fix White Text on Light Backgrounds
 
-Two issues to address:
+### Root Cause
 
-### 1. Change Pink/Rose Accents to Purple
+The `hero-gradient` in light mode uses a very light pastel gradient (`hsl(270 20% 95%)` — nearly white), but all hero sections and the headline ticker use `text-primary-foreground` (white, `0 0% 100%`). White text on a near-white background is invisible.
 
-The current `--primary` is `350 72% 50%` (rose-red/pink). Switching to a rich purple throughout.
+The same problem affects the `headline-ticker` class — it has `color: hsl(270 40% 35%)` set in CSS, but the JSX applies `text-primary-foreground` which overrides it via Tailwind specificity.
 
-**`src/index.css`** — Update color tokens in both `:root` and `.dark`:
+### Fix Approach
 
-**Light mode (`:root`)**:
-- `--primary`: `350 72% 50%` → `270 60% 50%` (vivid purple)
-- `--accent`: `350 55% 45%` → `270 50% 42%`
-- `--ring`: → `270 60% 50%`
-- `--rose-red` / `--rose-red-glow`: shift to purple hues (`270`)
-- `--gradient-hero`: replace rose tints with purple tints
-- `--gradient-accent`: purple-to-champagne gradient
-- `--shadow-glow-rose`: shift to purple glow
-- `--shadow-card-hover`: purple glow instead of rose
-- All hardcoded `hsl(350 ...)` references in component classes (`.glass-card:hover`, `.headline-ticker`, `.rose-badge`, `.stat-card:hover`, `.scouting-card:hover`, `.rose-overlay`, `.eliminated-sash`, `.page-bg::before` gradients) → shift `350` hue to `270`
-- Sidebar primary/ring: → `270 60% 50%`
+Two-pronged: (1) make the light-mode hero/ticker backgrounds dark enough for white text, OR (2) change the text color. Option 1 is better — it preserves the "War Room" premium look.
 
-**Dark mode (`.dark`)**:
-- Same hue shifts: all `350` → `270` for primary, accent, ring, glows, gradients, sidebar
+### Changes
 
-**`src/components/AppNav.tsx`** — The nav uses `text-primary` and `bg-primary/15` which will automatically pick up the new purple from CSS variables. No code changes needed.
+**`src/index.css`** — Update light mode variables and classes:
 
-**`src/components/WarRoomSidebar.tsx`** — Uses `text-primary` and `bg-primary`, will auto-update. No changes needed.
+1. **`--gradient-hero`**: Change from pastel (`270 20% 95%`) to a rich purple gradient that supports white text:
+   - `linear-gradient(135deg, hsl(270 45% 40%), hsl(270 35% 50%), hsl(38 40% 45%))` — deep purple-to-champagne
 
-### 2. Fix News to be Bachelorette-Specific
+2. **`--gradient-accent`**: Already dark enough (purple-to-gold), no change needed.
 
-The current RSS feeds are general entertainment (Us Weekly full feed, People full feed, E! News top stories). These return generic celebrity news, not Bachelorette content.
+3. **`.headline-ticker`** (light mode): Change from pastel purple (`hsl(270 40% 92%)`) to a deeper purple background:
+   - `linear-gradient(135deg, hsl(270 50% 42%), hsl(270 40% 50%))` — matches the hero darkness
+   - Set `color: white` so the `text-primary-foreground` Tailwind class isn't fighting the CSS
 
-**`src/config.ts`** — Replace generic feeds with Bachelorette-specific ones:
-- Keep ET Bachelorette feed (already specific)
-- Replace generic Us Weekly with their Bachelor tag feed
-- Replace generic People with their Bachelorette tag feed  
-- Replace E! News generic with their Bachelorette/Bachelor tag
-- Replace Reality Tea generic with their Bachelor category
-- Add Screen Rant Bachelor feed
+4. **`.stat-card-accent`**: Already uses `--gradient-accent`, should be fine.
 
-**`supabase/functions/rss-proxy/index.ts`** — Add Bachelorette keyword filtering: after fetching and parsing all feeds, filter articles to only include those whose title or summary contains keywords like "bachelorette", "bachelor", "rose ceremony", the lead name, or contestant names. This ensures even general feeds only surface relevant content.
+5. **`--shadow-hero`** in light mode: Adjust to complement the darker hero — make it slightly more purple-tinted.
 
-### Files to edit:
-1. `src/index.css` — all pink/rose hue references (`350`) → purple (`270`)
-2. `src/config.ts` — replace generic RSS feeds with Bachelorette-specific URLs
-3. `supabase/functions/rss-proxy/index.ts` — add keyword relevance filter
+No other files need changes — the JSX correctly uses `text-primary-foreground` which will be legible against the darker backgrounds.
+
+### Files to edit
+1. `src/index.css` — update `--gradient-hero`, `.headline-ticker` light mode backgrounds to be dark enough for white text
 
